@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import { FLAGS } from "../data/ImagemPaises";
+import { FLAGS } from "../assets/data/ImagemPaises";
 
 export default function TimeCard({ siglaTime }) {
   function getImag(sigla) {
