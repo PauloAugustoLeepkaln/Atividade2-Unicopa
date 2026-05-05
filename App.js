@@ -47,7 +47,7 @@ export default function App() {
         renderSectionHeader={({ section }) => (
           <View style={styles.card}>
             <Text style={styles.data}>
-              {section.title.split("-").reverse().join("/")}
+              {section.title.split("-").slice(1).reverse().join("/")}
             </Text>
             {section.data.map((jogo) => (
               <GameCard key={jogo.id} game={jogo} />
