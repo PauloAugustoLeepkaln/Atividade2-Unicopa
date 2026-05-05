@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image, ImageBackground } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import TimeCard from "./TimeCard";
 
 export default function GameCard({ game }) {
@@ -10,12 +10,13 @@ export default function GameCard({ game }) {
 
       <View style={styles.linhaPrincipal}>
         <TimeCard siglaTime={game.sigla_casa} />
+
         <View style={styles.horario}>
           <Text style={styles.hora}>{game.hora_brasilia}</Text>
           <Text style={styles.subTitulo}>VS</Text>
         </View>
 
-        <TimeCard siglaTime={game.sigla_fora} />
+        <TimeCard siglaTime={game.sigla_fora} reverso={true} />
       </View>
 
       <View style={styles.local}>
