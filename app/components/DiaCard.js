@@ -1,16 +1,17 @@
 import { StyleSheet, Text, View } from "react-native";
 import GameCard from "./GameCard";
 
+// IMPORTAÇÃO DA NOSSA NOVA PASTA UTILS
+import { formatarData } from "../utils/funcoes"; 
+
 export default function DiaCard({ data, jogos }) {
-  const formatarData = (dataString) => {
-    const [ano, mes, dia] = dataString.split("-");
-    return `${dia}/${mes}`;
-  };
+  
+  // A função formatarData não está mais aqui dentro! Ela vem do import.
 
   return (
     <View style={styles.card}>
       <Text style={styles.data}>{formatarData(data)}</Text>
-
+      
       {jogos.map((jogo) => (
         <GameCard key={jogo.id} game={jogo} />
       ))}
