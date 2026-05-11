@@ -2,11 +2,11 @@ import { StyleSheet, Text, View } from "react-native";
 import TimeCard from "./TimeCard";
 
 export default function GameCard({ game }) {
-  // 1. Identificar jogos com sigla "BRA"
+
   const isBrasil = game.sigla_casa === "BRA" || game.sigla_fora === "BRA";
 
   return (
-    // 2. Aplicar o estilo diferenciado condicionalmente
+   
     <View style={[styles.jogo, isBrasil && styles.jogoBrasil]}>
       <Text style={styles.grupo}>
         GRUPO {game.grupo} {game.confronto}
@@ -43,12 +43,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
   },
-  // 3. Estilo que mantém a consistência visual (mesmo amarelo da data)
+
   jogoBrasil: {
-    backgroundColor: "rgba(242, 204, 47, 0.05)", // Fundo amarelado bem transparente
-    borderColor: "#f2cc2f", // Borda de destaque na cor amarela
+    backgroundColor: "rgba(242, 204, 47, 0.05)", 
+    borderColor: "#f2cc2f", 
     borderWidth: 1,
-    borderBottomWidth: 1, // Sobrescreve a borda padrão
+    borderBottomWidth: 1,
   },
   grupo: {
     color: "#8fa3b8",

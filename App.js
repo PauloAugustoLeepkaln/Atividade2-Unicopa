@@ -8,15 +8,10 @@ import {
 import { useState } from "react";
 import copaData from "./app/assets/data/copaData.json";
 import DiaCard from "./app/components/DiaCard";
-
-// IMPORTAÇÃO DA NOSSA NOVA PASTA UTILS
 import { agruparPorData } from "./app/utils/funcoes";
 
 export default function App() {
   const [jogos, setJogos] = useState(copaData.jogos);
-
-  // A função agruparPorData não está mais aqui! Ela vem do import ali em cima.
-
   const jogosAgrupados = agruparPorData(jogos);
   const jogosTratados = Object.keys(jogosAgrupados).map((data) => {
     return {
