@@ -1,27 +1,43 @@
-import { StyleSheet, Text, Image, ImageBackground, FlatList } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  Image,
+  ImageBackground,
+  FlatList,
+  View,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import { useState } from "react";
 import copaData from "./app/assets/data/copaData.json";
 import DiaCard from "./app/components/DiaCard";
-import { agruparPorData } from "./app/utils/funcoes"; 
+import { agruparPorData } from "./app/utils/funcoes";
 
 export default function App() {
   const [jogos, setJogos] = useState(copaData.jogos);
-  
-  // 1. Manter lista em memória: criamos o "caderninho" de favoritos vazio
-  const [favoritos, setFavoritos] = useState([]); 
+  const [favoritos, setFavoritos] = useState([]);
 
-  // Função que adiciona ou remove o jogo do caderninho
+  // 1. Estado para guardar o filtro atual (começa mostrando "Todos")
+  const [grupoFiltro, setGrupoFiltro] = useState("Todos");
+  const gruposDaCopa = ["Todos", "A", "B", "C", "D", "E", "F", "G", "H"];
+
   const toggleFavorito = (jogoId) => {
     if (favoritos.includes(jogoId)) {
-      // Se já é favorito, tira da lista
-      setFavoritos(favoritos.filter(id => id !== jogoId));
+      setFavoritos(favoritos.filter((id) => id !== jogoId));
     } else {
-      // Se não é, adiciona na lista
       setFavoritos([...favoritos, jogoId]);
     }
   };
 
-  const jogosAgrupados = agruparPorData(jogos);
+  // 2. Lógica de Filtragem (Atualiza a lista exibida antes de agrupar)
+  const jogosFiltrados =
+    grupoFiltro === "Todos"
+      ? jogos
+      : jogos.filter((jogo) => jogo.grupo === grupoFiltro);
+
+  // 3. Mantém o agrupamento por data (usando a lista que acabou de ser filtrada)
+  const jogosAgrupados = agruparPorData(jogosFiltrados);
+
   const jogosTratados = Object.keys(jogosAgrupados).map((data) => {
     return {
       title: data,
@@ -37,19 +53,43 @@ export default function App() {
     >
       <Image style={styles.logo} source={require("./app/assets/unicopa.png")} />
       <Text style={styles.title}>CALENDÁRIO</Text>
-      
+
+      {/* Barra de Filtros Visual */}
+      <View style={styles.filtrosContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {gruposDaCopa.map((grupo) => (
+            <TouchableOpacity
+              key={grupo}
+              style={[
+                styles.filtroBtn,
+                grupoFiltro === grupo && styles.filtroBtnAtivo,
+              ]}
+              onPress={() => setGrupoFiltro(grupo)}
+            >
+              <Text
+                style={[
+                  styles.filtroTexto,
+                  grupoFiltro === grupo && styles.filtroTextoAtivo,
+                ]}
+              >
+                {grupo === "Todos" ? "Todos" : `Grupo ${grupo}`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <FlatList
         data={jogosTratados}
         keyExtractor={(item) => item.title}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 30 }}
         renderItem={({ item }) => (
-          // Passamos a lista e a função para o DiaCard
-          <DiaCard 
-            data={item.title} 
-            jogos={item.data} 
-            favoritos={favoritos} 
-            toggleFavorito={toggleFavorito} 
+          <DiaCard
+            data={item.title}
+            jogos={item.data}
+            favoritos={favoritos}
+            toggleFavorito={toggleFavorito}
           />
         )}
       />
@@ -75,5 +115,33 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     color: "white",
+  },
+  // Novos estilos para os botões de filtro
+  filtrosContainer: {
+    width: "100%",
+    paddingLeft: 20,
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  filtroBtn: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1e2d3d",
+    backgroundColor: "transparent",
+  },
+  filtroBtnAtivo: {
+    backgroundColor: "#f2cc2f",
+    borderColor: "#f2cc2f",
+  },
+  filtroTexto: {
+    color: "#8fa3b8",
+    fontWeight: "600",
+  },
+  filtroTextoAtivo: {
+    color: "#040b13", // Texto escuro para contrastar com o botão amarelo
+    fontWeight: "bold",
   },
 });
