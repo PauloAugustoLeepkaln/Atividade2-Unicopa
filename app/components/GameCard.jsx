@@ -1,16 +1,30 @@
-import { StyleSheet, Text, View } from "react-native";
+// Importamos o TouchableOpacity para permitir o clique
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import TimeCard from "./TimeCard";
 
-export default function GameCard({ game }) {
-
+// Recebemos as novas propriedades aqui
+export default function GameCard({ game, isFavorito, onToggleFavorito }) {
   const isBrasil = game.sigla_casa === "BRA" || game.sigla_fora === "BRA";
 
   return (
-   
-    <View style={[styles.jogo, isBrasil && styles.jogoBrasil]}>
-      <Text style={styles.grupo}>
-        GRUPO {game.grupo} {game.confronto}
-      </Text>
+    // 2. Permitir clicar: Trocamos a <View> principal por <TouchableOpacity>
+    <TouchableOpacity 
+      activeOpacity={0.7} 
+      onPress={onToggleFavorito}
+      style={[
+        styles.jogo, 
+        isBrasil && styles.jogoBrasil,
+        isFavorito && styles.jogoFavorito // 3. Alterar estado visual
+      ]}
+    >
+      {/* Criamos um cabeçalho para colocar o Grupo e a Estrela lado a lado */}
+      <View style={styles.cabecalhoJogo}>
+        <Text style={styles.grupo}>
+          GRUPO {game.grupo} {game.confronto}
+        </Text>
+        {/* Mostra a estrela cheia se for favorito, ou vazia se não for */}
+        <Text style={styles.estrela}>{isFavorito ? "⭐" : "☆"}</Text>
+      </View>
 
       <View style={styles.linhaPrincipal}>
         <TimeCard siglaTime={game.sigla_casa} />
@@ -29,7 +43,7 @@ export default function GameCard({ game }) {
           {game.cidade} • {game.pais}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -43,17 +57,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
   },
-
   jogoBrasil: {
-    backgroundColor: "rgba(242, 204, 47, 0.05)", 
-    borderColor: "#f2cc2f", 
+    backgroundColor: "rgba(242, 204, 47, 0.05)",
+    borderColor: "#f2cc2f",
     borderWidth: 1,
     borderBottomWidth: 1,
+  },
+  // Destaque visual extra se for favorito (borda levemente iluminada)
+  jogoFavorito: {
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderWidth: 1,
+  },
+  cabecalhoJogo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   grupo: {
     color: "#8fa3b8",
     fontSize: 12,
-    marginBottom: 10,
+  },
+  estrela: {
+    fontSize: 16,
+    color: "#f2cc2f",
   },
   linhaPrincipal: {
     flexDirection: "row",

@@ -1,17 +1,26 @@
-import {
-  StyleSheet,
-  Text,
-  Image,
-  ImageBackground,
-  FlatList,
-} from "react-native";
+import { StyleSheet, Text, Image, ImageBackground, FlatList } from "react-native";
 import { useState } from "react";
 import copaData from "./app/assets/data/copaData.json";
 import DiaCard from "./app/components/DiaCard";
-import { agruparPorData } from "./app/utils/funcoes";
+import { agruparPorData } from "./app/utils/funcoes"; 
 
 export default function App() {
   const [jogos, setJogos] = useState(copaData.jogos);
+  
+  // 1. Manter lista em memória: criamos o "caderninho" de favoritos vazio
+  const [favoritos, setFavoritos] = useState([]); 
+
+  // Função que adiciona ou remove o jogo do caderninho
+  const toggleFavorito = (jogoId) => {
+    if (favoritos.includes(jogoId)) {
+      // Se já é favorito, tira da lista
+      setFavoritos(favoritos.filter(id => id !== jogoId));
+    } else {
+      // Se não é, adiciona na lista
+      setFavoritos([...favoritos, jogoId]);
+    }
+  };
+
   const jogosAgrupados = agruparPorData(jogos);
   const jogosTratados = Object.keys(jogosAgrupados).map((data) => {
     return {
@@ -27,16 +36,21 @@ export default function App() {
       resizeMode="cover"
     >
       <Image style={styles.logo} source={require("./app/assets/unicopa.png")} />
-
       <Text style={styles.title}>CALENDÁRIO</Text>
-
+      
       <FlatList
         data={jogosTratados}
         keyExtractor={(item) => item.title}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 30 }}
         renderItem={({ item }) => (
-          <DiaCard data={item.title} jogos={item.data} />
+          // Passamos a lista e a função para o DiaCard
+          <DiaCard 
+            data={item.title} 
+            jogos={item.data} 
+            favoritos={favoritos} 
+            toggleFavorito={toggleFavorito} 
+          />
         )}
       />
     </ImageBackground>
