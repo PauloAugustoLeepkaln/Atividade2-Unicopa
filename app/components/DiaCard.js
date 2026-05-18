@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from "react-native";
 import GameCard from "./GameCard";
 import { formatarData } from "../utils/funcoes";
 
-// Adicionamos 'favoritos' e 'toggleFavorito' aqui nos parênteses
 export default function DiaCard({ data, jogos, favoritos, toggleFavorito }) {
   const verificarSeEhHoje = () => {
     const hoje = new Date();
@@ -23,7 +22,6 @@ export default function DiaCard({ data, jogos, favoritos, toggleFavorito }) {
       </View>
 
       {jogos.map((jogo) => (
-        // Avisamos ao GameCard se ele é favorito e passamos a função de clique
         <GameCard
           key={jogo.id}
           game={jogo}

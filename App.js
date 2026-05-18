@@ -5,19 +5,19 @@ import {
   ImageBackground,
   FlatList,
   View,
-  ScrollView,
   TouchableOpacity,
 } from "react-native";
 import { useState } from "react";
+
 import copaData from "./app/assets/data/copaData.json";
 import DiaCard from "./app/components/DiaCard";
 import { agruparPorData } from "./app/utils/funcoes";
+import { sincronizarJogosComBanco } from "./app/utils/importarDados";
 
 export default function App() {
   const [jogos, setJogos] = useState(copaData.jogos);
   const [favoritos, setFavoritos] = useState([]);
 
-  // 1. Estado para guardar o filtro atual (começa mostrando "Todos")
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
   const gruposDaCopa = ["Todos", "A", "B", "C", "D", "E", "F", "G", "H"];
 
@@ -29,13 +29,11 @@ export default function App() {
     }
   };
 
-  // 2. Lógica de Filtragem (Atualiza a lista exibida antes de agrupar)
   const jogosFiltrados =
     grupoFiltro === "Todos"
       ? jogos
       : jogos.filter((jogo) => jogo.grupo === grupoFiltro);
 
-  // 3. Mantém o agrupamento por data (usando a lista que acabou de ser filtrada)
   const jogosAgrupados = agruparPorData(jogosFiltrados);
 
   const jogosTratados = Object.keys(jogosAgrupados).map((data) => {
@@ -54,9 +52,8 @@ export default function App() {
       <Image style={styles.logo} source={require("./app/assets/unicopa.png")} />
       <Text style={styles.title}>CALENDÁRIO</Text>
 
-      {/* Barra de Filtros Visual */}
       <View style={styles.filtrosContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.botoesWrapper}>
           {gruposDaCopa.map((grupo) => (
             <TouchableOpacity
               key={grupo}
@@ -76,8 +73,15 @@ export default function App() {
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
       </View>
+
+      <TouchableOpacity
+        style={styles.btnSupabase}
+        onPress={sincronizarJogosComBanco}
+      >
+        <Text style={styles.btnSupabaseTexto}>☁️ Enviar para Supabase</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={jogosTratados}
@@ -116,17 +120,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "white",
   },
-  // Novos estilos para os botões de filtro
   filtrosContainer: {
     width: "100%",
-    paddingLeft: 20,
     marginTop: 15,
-    marginBottom: 5,
+    marginBottom: 15,
+    alignItems: "center",
+  },
+  botoesWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    paddingHorizontal: 10,
   },
   filtroBtn: {
     paddingHorizontal: 15,
     paddingVertical: 8,
-    marginRight: 10,
+    margin: 5,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#1e2d3d",
@@ -141,7 +150,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   filtroTextoAtivo: {
-    color: "#040b13", // Texto escuro para contrastar com o botão amarelo
+    color: "#040b13",
+    fontWeight: "bold",
+  },
+  btnSupabase: {
+    backgroundColor: "#28a745",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  btnSupabaseTexto: {
+    color: "white",
     fontWeight: "bold",
   },
 });
