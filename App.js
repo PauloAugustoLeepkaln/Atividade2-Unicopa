@@ -16,14 +16,14 @@ import { sincronizarJogosComBanco } from "./app/utils/importarDados";
 import { supabase } from "./app/utils/supabase";
 
 export default function App() {
-  const [jogos, setJogos] = useState([]); // Inicia vazio para buscar do banco
-  const [carregando, setCarregando] = useState(true); // Estado de carregamento
-  const [favoritos, setFavoritos] = useState([]);
+  const [jogos, setJogos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [favoritos, setFavoritos] = useState([]); // Array para guardar os IDs dos jogos favoritos
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
 
   const gruposDaCopa = ["Todos", "A", "B", "C", "D", "E", "F", "G", "H"];
 
-  // Função para buscar os jogos direto do Supabase
+  // Busca os jogos e normaliza os dados
   async function buscarJogosDoBanco() {
     try {
       setCarregando(true);
@@ -31,7 +31,15 @@ export default function App() {
 
       if (error) throw error;
 
-      setJogos(data || []); // Se for nulo, joga uma lista vazia pra não quebrar
+      const dadosNormalizados = (data || []).map((jogo) => ({
+        ...jogo,
+        data: jogo.data_brasilia,
+        hora_brasilia: jogo.hora_brasilia
+          ? jogo.hora_brasilia.substring(0, 5)
+          : "",
+      }));
+
+      setJogos(dadosNormalizados);
     } catch (error) {
       console.error("Erro ao buscar jogos do banco:", error.message);
     } finally {
@@ -39,16 +47,64 @@ export default function App() {
     }
   }
 
-  // Executa a busca assim que o app inicia
+  // RF-012: Busca os favoritos salvos no Supabase ao iniciar o app
+  async function buscarFavoritosDoBanco() {
+    try {
+      const { data, error } = await supabase
+        .from("favoritos")
+        .select("jogo_id");
+      if (error) throw error;
+
+      // Transforma a resposta do banco [{jogo_id: 1}, ...] em um array simples [1, 2, ...]
+      const idsFavoritos = (data || []).map((f) => f.jogo_id);
+      setFavoritos(idsFavoritos);
+    } catch (error) {
+      console.error("Erro ao buscar favoritos:", error.message);
+    }
+  }
+
+  // Executa as duas buscas assim que a tela abre
   useEffect(() => {
     buscarJogosDoBanco();
+    buscarFavoritosDoBanco();
   }, []);
 
-  const toggleFavorito = (jogoId) => {
-    if (favoritos.includes(jogoId)) {
+  // RF-012: Salva ou remove o favorito no Supabase e na tela
+  const toggleFavorito = async (jogoId) => {
+    const jaEhFavorito = favoritos.includes(jogoId);
+
+    // Atualização visual imediata (para o app parecer rápido)
+    if (jaEhFavorito) {
       setFavoritos(favoritos.filter((id) => id !== jogoId));
     } else {
       setFavoritos([...favoritos, jogoId]);
+    }
+
+    // Persistência no banco de dados
+    try {
+      if (jaEhFavorito) {
+        // Se já era favorito, remove da tabela
+        const { error } = await supabase
+          .from("favoritos")
+          .delete()
+          .eq("jogo_id", jogoId);
+        if (error) throw error;
+      } else {
+        // Se não era, insere na tabela
+        const { error } = await supabase
+          .from("favoritos")
+          .insert([{ jogo_id: jogoId }]);
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar favorito no banco:", error.message);
+      // Se der erro no banco, desfaz a alteração visual na tela
+      if (jaEhFavorito) {
+        setFavoritos([...favoritos, jogoId]);
+      } else {
+        setFavoritos(favoritos.filter((id) => id !== jogoId));
+      }
+      alert("Erro de conexão ao salvar favorito.");
     }
   };
 
@@ -99,31 +155,27 @@ export default function App() {
         </View>
       </View>
 
-      {/* Botão de sincronizar mantido caso queira rodar novamente */}
       <TouchableOpacity
         style={styles.btnSupabase}
         onPress={async () => {
           await sincronizarJogosComBanco();
-          buscarJogosDoBanco(); // Atualiza a lista na tela após sincronizar
+          buscarJogosDoBanco();
         }}
       >
         <Text style={styles.btnSupabaseTexto}>☁️ Enviar para Supabase</Text>
       </TouchableOpacity>
 
-      {/* Condição 1: Tela carregando dados */}
       {carregando ? (
         <ActivityIndicator
           size="large"
           color="#f2cc2f"
           style={{ marginTop: 50 }}
         />
-      ) : /* Condição 2 & CRITÉRIOS DE ACEITE: Se não houver jogos, exibe o card informativo */
-      jogosTratados.length === 0 ? (
+      ) : jogosTratados.length === 0 ? (
         <View style={styles.cardVazio}>
           <Text style={styles.cardVazioTexto}>⚠️ Nenhum jogo carregado</Text>
         </View>
       ) : (
-        /* Condição 3: Se houver dados, renderiza a lista normalmente */
         <FlatList
           data={jogosTratados}
           keyExtractor={(item) => item.title}
@@ -206,7 +258,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  // Novos estilos para o card de erro do RF-011 combinando com o tema escuro do app
   cardVazio: {
     backgroundColor: "#111c2a",
     borderColor: "#f2cc2f",
