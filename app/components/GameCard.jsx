@@ -1,35 +1,32 @@
-// Importamos o TouchableOpacity para permitir o clique
+// app/components/GameCard.jsx
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import TimeCard from "./TimeCard";
 
-// Recebemos as novas propriedades aqui
 export default function GameCard({ game, isFavorito, onToggleFavorito }) {
   const isBrasil = game.sigla_casa === "BRA" || game.sigla_fora === "BRA";
 
   return (
-    // 2. Permitir clicar: Trocamos a <View> principal por <TouchableOpacity>
-    <TouchableOpacity 
-      activeOpacity={0.7} 
+    <TouchableOpacity
+      activeOpacity={0.7}
       onPress={onToggleFavorito}
       style={[
-        styles.jogo, 
+        styles.jogo,
         isBrasil && styles.jogoBrasil,
-        isFavorito && styles.jogoFavorito // 3. Alterar estado visual
+        isFavorito && styles.jogoFavorito,
       ]}
     >
-      {/* Criamos um cabeçalho para colocar o Grupo e a Estrela lado a lado */}
       <View style={styles.cabecalhoJogo}>
         <Text style={styles.grupo}>
           GRUPO {game.grupo} {game.confronto}
         </Text>
-        {/* Mostra a estrela cheia se for favorito, ou vazia se não for */}
         <Text style={styles.estrela}>{isFavorito ? "⭐" : "☆"}</Text>
       </View>
 
       <View style={styles.linhaPrincipal}>
         <TimeCard siglaTime={game.sigla_casa} />
-        
+
         <View style={styles.horario}>
+          {/* Esse cara aqui vai ler o horário certinho de Brasília normalizado pelo App.js! */}
           <Text style={styles.hora}>{game.hora_brasilia}</Text>
           <Text style={styles.subTitulo}>VS</Text>
         </View>
@@ -63,7 +60,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomWidth: 1,
   },
-  // Destaque visual extra se for favorito (borda levemente iluminada)
   jogoFavorito: {
     borderColor: "rgba(255, 255, 255, 0.3)",
     borderWidth: 1,
