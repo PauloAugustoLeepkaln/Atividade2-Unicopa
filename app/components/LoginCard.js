@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { supabase } from "../utils/supabase";
 
-export default function LoginCard({ onLoginSuccess }) {
+export default function LoginCard({ onLoginSuccess, onNavigateToRegister }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -110,6 +110,13 @@ export default function LoginCard({ onLoginSuccess }) {
           <Text style={styles.botaoTexto}>ENTRAR</Text>
         )}
       </TouchableOpacity>
+
+      <TouchableOpacity style={{ marginTop: 20, alignItems: "center" }} onPress={onNavigateToRegister}>
+        <Text style={{ color: "#8fa3b8", fontSize: 14 }}>
+          Não tem uma conta? <Text style={{ color: "#f2cc2f", fontWeight: "bold" }}>Registre-se</Text>
+        </Text>
+      </TouchableOpacity>
+      
     </View>
   );
 }

@@ -11,25 +11,26 @@ import {
 import { useState, useEffect } from "react";
 
 import DiaCard from "./app/components/DiaCard";
-import LoginCard from "./app/components/LoginCard"; // Importação da tela de Login (RF-013)
+import LoginCard from "./app/components/LoginCard";
+import RegisterCard from "./app/components/RegisterCard";
 import { agruparPorData } from "./app/utils/funcoes";
 import { sincronizarJogosComBanco } from "./app/utils/importarDados";
 import { supabase } from "./app/utils/supabase";
 
 export default function App() {
-  const [usuario, setUsuario] = useState(null); // Estado para guardar o usuário autenticado (RF-013)
-  const [verificandoSessao, setVerificandoSessao] = useState(true); // Bloqueia a tela enquanto checa se já estava logado
+  const [usuario, setUsuario] = useState(null); 
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
+  const [telaAuth, setTelaAuth] = useState("login");
 
   const [jogos, setJogos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [favoritos, setFavoritos] = useState([]); // Array para guardar os IDs dos jogos favoritos
+  const [favoritos, setFavoritos] = useState([]); 
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
 
   const gruposDaCopa = ["Todos", "A", "B", "C", "D", "E", "F", "G", "H"];
 
-  // Monitora o estado de autenticação do Supabase em tempo real (RF-013)
+  // Monitora o estado de autenticação do Supabase em tempo real
   useEffect(() => {
-    // 1. Checa se já havia uma sessão salva no celular
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUsuario(session.user);
@@ -37,7 +38,6 @@ export default function App() {
       setVerificandoSessao(false);
     });
 
-    // 2. Escuta se o usuário fez login ou logout
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -55,38 +55,11 @@ export default function App() {
   useEffect(() => {
     if (usuario) {
       buscarJogosDoBanco();
-      buscarFavoritosDoBanco();
+      buscarFavoritosDoBanco(usuario.id); // <- PASSANDO O ID DO USUÁRIO
+    } else {
+      setFavoritos([]); // <- LIMPA OS FAVORITOS SE FIZER LOGOUT
     }
   }, [usuario]);
-
-  // Sua função de teste para inserir usuário
-  async function inserirUsuario() {
-    try {
-      const { data, error } = await supabase.from("usuarios").insert([
-        {
-          nome: "Taffe",
-          email: "teste@teste.com",
-          ra: "000000000",
-          senha: "123456",
-          telefone: "119999999",
-          data_nascimento: "2000-01-01",
-        },
-      ]);
-
-      if (!error) {
-        console.log("Usuario inserido com sucesso");
-      } else {
-        console.log("Erro ao inserir usuario", error);
-      }
-    } catch (err) {
-      console.log("Erro ao rodar inserção:", err.message);
-    }
-  }
-
-  // 🔥 CORREÇÃO: Executa a sua inserção de teste APENAS UMA VEZ quando o aplicativo abre
-  useEffect(() => {
-    inserirUsuario();
-  }, []);
 
   // Busca os jogos e normaliza os dados
   async function buscarJogosDoBanco() {
@@ -112,12 +85,14 @@ export default function App() {
     }
   }
 
-  // RF-012: Busca os favoritos salvos no Supabase ao iniciar o app
-  async function buscarFavoritosDoBanco() {
+  // Busca os favoritos salvos no Supabase filtrando pelo usuário
+  async function buscarFavoritosDoBanco(userId) {
     try {
       const { data, error } = await supabase
         .from("favoritos")
-        .select("jogo_id");
+        .select("jogo_id")
+        .eq("user_id", userId); // <- FILTRA PELO USUÁRIO LOGADO
+
       if (error) throw error;
 
       const idsFavoritos = (data || []).map((f) => f.jogo_id);
@@ -127,35 +102,42 @@ export default function App() {
     }
   }
 
-  // RF-012: Salva ou remove o favorito no Supabase e na tela
+  // Salva ou remove o favorito no Supabase e na tela
   const toggleFavorito = async (jogoId) => {
+    if (!usuario) return; // Segurança extra
+
     const jaEhFavorito = favoritos.includes(jogoId);
 
+    // 1. Atualiza a tela imediatamente para não parecer lento
     if (jaEhFavorito) {
-      setFavoritos(favoritos.filter((id) => id !== jogoId));
+      setFavoritos((prev) => prev.filter((id) => id !== jogoId));
     } else {
-      setFavoritos([...favoritos, jogoId]);
+      setFavoritos((prev) => [...prev, jogoId]);
     }
 
+    // 2. Envia para o Supabase
     try {
       if (jaEhFavorito) {
         const { error } = await supabase
           .from("favoritos")
           .delete()
-          .eq("jogo_id", jogoId);
+          .match({ user_id: usuario.id, jogo_id: jogoId }); // <- APAGA O MATCH EXATO
+
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("favoritos")
-          .insert([{ jogo_id: jogoId }]);
+          .insert({ user_id: usuario.id, jogo_id: jogoId }); // <- INSERE COM O USER_ID
+
         if (error) throw error;
       }
     } catch (error) {
       console.error("Erro ao atualizar favorito no banco:", error.message);
+      // Reverte a tela caso dê erro no banco de dados
       if (jaEhFavorito) {
-        setFavoritos([...favoritos, jogoId]);
+        setFavoritos((prev) => [...prev, jogoId]);
       } else {
-        setFavoritos(favoritos.filter((id) => id !== jogoId));
+        setFavoritos((prev) => prev.filter((id) => id !== jogoId));
       }
       alert("Erro de conexão ao salvar favorito.");
     }
@@ -165,7 +147,6 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  // Enquanto estiver checando se o usuário já estava logado antes, mostra o loading na tela limpa
   if (verificandoSessao) {
     return (
       <View style={[styles.container, { justifyContent: "center" }]}>
@@ -196,13 +177,20 @@ export default function App() {
     >
       <Image style={styles.logo} source={require("./app/assets/unicopa.png")} />
 
-      {/* RENDERIZAÇÃO CONDICIONAL (RF-013): Se NÃO houver usuário logado, mostra a tela de login */}
       {!usuario ? (
         <View style={styles.loginContainer}>
-          <LoginCard onLoginSuccess={(user) => setUsuario(user)} />
+          {telaAuth === "login" ? (
+            <LoginCard 
+              onLoginSuccess={(user) => setUsuario(user)} 
+              onNavigateToRegister={() => setTelaAuth("register")} 
+            />
+          ) : (
+            <RegisterCard 
+              onGoBack={() => setTelaAuth("login")} 
+            />
+          )}
         </View>
       ) : (
-        /* Se houver usuário logado, mostra o seu Calendário perfeitamente */
         <>
           <View style={styles.headerAcoes}>
             <Text style={styles.title}>CALENDÁRIO</Text>
