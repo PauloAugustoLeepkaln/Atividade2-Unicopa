@@ -2,7 +2,14 @@ import { StyleSheet, Text, View } from "react-native";
 import GameCard from "./GameCard";
 import { formatarData } from "../utils/funcoes";
 
-export default function DiaCard({ data, jogos, favoritos, toggleFavorito }) {
+export default function DiaCard({
+  data,
+  jogos,
+  favoritos,
+  toggleFavorito,
+  palpites = [],
+  salvarPalpite,
+}) {
   const verificarSeEhHoje = () => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -21,14 +28,21 @@ export default function DiaCard({ data, jogos, favoritos, toggleFavorito }) {
         {isHoje && <Text style={styles.badgeHoje}>HOJE</Text>}
       </View>
 
-      {jogos.map((jogo) => (
-        <GameCard
-          key={jogo.id}
-          game={jogo}
-          isFavorito={favoritos.includes(jogo.id)}
-          onToggleFavorito={() => toggleFavorito(jogo.id)}
-        />
-      ))}
+      {jogos.map((jogo) => {
+        // Procura se o usuário já tem um palpite salvo para este jogo específico
+        const palpiteDoJogo = palpites.find((p) => p.id_jogo === jogo.id);
+
+        return (
+          <GameCard
+            key={jogo.id}
+            game={jogo}
+            isFavorito={favoritos.includes(jogo.id)}
+            onToggleFavorito={() => toggleFavorito(jogo.id)}
+            palpite={palpiteDoJogo} // <-- Passa o palpite para o cartão
+            onSalvarPalpite={salvarPalpite} // <-- Passa a função de salvar
+          />
+        );
+      })}
     </View>
   );
 }

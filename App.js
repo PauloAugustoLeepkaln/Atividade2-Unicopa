@@ -18,13 +18,14 @@ import { sincronizarJogosComBanco } from "./app/utils/importarDados";
 import { supabase } from "./app/utils/supabase";
 
 export default function App() {
-  const [usuario, setUsuario] = useState(null); 
+  const [usuario, setUsuario] = useState(null);
   const [verificandoSessao, setVerificandoSessao] = useState(true);
   const [telaAuth, setTelaAuth] = useState("login");
+  const [palpites, setPalpites] = useState([]);
 
   const [jogos, setJogos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [favoritos, setFavoritos] = useState([]); 
+  const [favoritos, setFavoritos] = useState([]);
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
 
   const gruposDaCopa = ["Todos", "A", "B", "C", "D", "E", "F", "G", "H"];
@@ -55,9 +56,11 @@ export default function App() {
   useEffect(() => {
     if (usuario) {
       buscarJogosDoBanco();
-      buscarFavoritosDoBanco(usuario.id); // <- PASSANDO O ID DO USUÁRIO
+      buscarFavoritosDoBanco(usuario.id);
+      buscarPalpitesDoBanco(usuario.id); // Puxa os palpites ao logar
     } else {
-      setFavoritos([]); // <- LIMPA OS FAVORITOS SE FIZER LOGOUT
+      setFavoritos([]);
+      setPalpites([]); // Limpa os palpites ao fazer logout
     }
   }, [usuario]);
 
@@ -84,6 +87,46 @@ export default function App() {
       setCarregando(false);
     }
   }
+
+  async function buscarPalpitesDoBanco(userId) {
+    try {
+      const { data, error } = await supabase
+        .from("palpites")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      setPalpites(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar palpites:", error.message);
+    }
+  }
+
+  const salvarPalpite = async (jogoId, golsCasa, golsFora) => {
+    if (!usuario) return;
+
+    try {
+      const { error } = await supabase.from("palpites").upsert(
+        {
+          user_id: usuario.id,
+          id_jogo: jogoId,
+          placar_time_casa: golsCasa,
+          placar_time_fora: golsFora,
+        },
+        {
+          onConflict: "user_id, id_jogo", // Diz ao banco qual é a regra de duplicidade
+        },
+      );
+
+      if (error) throw error;
+
+      // Atualiza a lista de palpites localmente para a tela reagir
+      buscarPalpitesDoBanco(usuario.id);
+    } catch (error) {
+      console.error("Erro ao salvar palpite:", error.message);
+      alert("Erro ao salvar seu palpite.");
+    }
+  };
 
   // Busca os favoritos salvos no Supabase filtrando pelo usuário
   async function buscarFavoritosDoBanco(userId) {
@@ -180,14 +223,12 @@ export default function App() {
       {!usuario ? (
         <View style={styles.loginContainer}>
           {telaAuth === "login" ? (
-            <LoginCard 
-              onLoginSuccess={(user) => setUsuario(user)} 
-              onNavigateToRegister={() => setTelaAuth("register")} 
+            <LoginCard
+              onLoginSuccess={(user) => setUsuario(user)}
+              onNavigateToRegister={() => setTelaAuth("register")}
             />
           ) : (
-            <RegisterCard 
-              onGoBack={() => setTelaAuth("login")} 
-            />
+            <RegisterCard onGoBack={() => setTelaAuth("login")} />
           )}
         </View>
       ) : (
@@ -257,6 +298,8 @@ export default function App() {
                   jogos={item.data}
                   favoritos={favoritos}
                   toggleFavorito={toggleFavorito}
+                  palpites={palpites}
+                  salvarPalpite={salvarPalpite}
                 />
               )}
             />
