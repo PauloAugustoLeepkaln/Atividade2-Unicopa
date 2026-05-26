@@ -5,12 +5,14 @@ import TimeCard from "./TimeCard";
 export default function GameCard({ game, isFavorito, onToggleFavorito, palpite, onSalvarPalpite }) {
   const isBrasil = game.sigla_casa === "BRA" || game.sigla_fora === "BRA";
   
-  // Estados para os gols, carregando os valores do banco se existirem
   const [golsCasa, setGolsCasa] = useState(palpite?.placar_time_casa?.toString() || "");
   const [golsFora, setGolsFora] = useState(palpite?.placar_time_fora?.toString() || "");
-  const [bloqueado, setBloqueado] = useState(false);
+  const [bloqueadoPorHorario, setBloqueadoPorHorario] = useState(false);
 
-  // Sincroniza os gols se o palpite vier do banco de dados com delay
+  // Verifica se o palpite já foi confirmado lá na tela de revisão (lê do banco de dados)
+  // Como o banco pode estar com "NULL", usamos a interrogação para evitar erros
+  const estaConfirmado = palpite?.situacao === "confirmado";
+
   useEffect(() => {
     if (palpite) {
       setGolsCasa(palpite.placar_time_casa?.toString() || "");
@@ -21,16 +23,16 @@ export default function GameCard({ game, isFavorito, onToggleFavorito, palpite, 
   // Lógica de bloqueio de horário (RF-015)
   useEffect(() => {
     if (game.data && game.hora_brasilia) {
-      // Monta a data no formato padrão: YYYY-MM-DDTHH:MM:00
       const dataHoraJogo = new Date(`${game.data}T${game.hora_brasilia}:00`);
       const agora = new Date();
-      
-      // Se a hora atual passou da hora do jogo, bloqueia!
       if (agora >= dataHoraJogo) {
-        setBloqueado(true);
+        setBloqueadoPorHorario(true);
       }
     }
   }, [game.data, game.hora_brasilia]);
+
+  // O input será bloqueado se o horário do jogo já passou OU se o usuário já confirmou o envio
+  const inputDesabilitado = bloqueadoPorHorario || estaConfirmado;
 
   const handleSalvar = () => {
     if (golsCasa !== "" && golsFora !== "") {
@@ -42,7 +44,7 @@ export default function GameCard({ game, isFavorito, onToggleFavorito, palpite, 
 
   return (
     <TouchableOpacity
-      activeOpacity={0.9} // Mudei para 0.9 para o card não piscar tanto quando clicar nos inputs
+      activeOpacity={0.9}
       style={[
         styles.jogo,
         isBrasil && styles.jogoBrasil,
@@ -61,40 +63,41 @@ export default function GameCard({ game, isFavorito, onToggleFavorito, palpite, 
       <View style={styles.linhaPrincipal}>
         <TimeCard siglaTime={game.sigla_casa} />
 
-        {/* Área central com placar e horário */}
         <View style={styles.areaPlacar}>
           <Text style={styles.hora}>{game.hora_brasilia}</Text>
           
           <View style={styles.inputsContainer}>
             <TextInput
-              style={[styles.inputPlacar, bloqueado && styles.inputBloqueado]}
+              style={[styles.inputPlacar, inputDesabilitado && styles.inputBloqueado]}
               keyboardType="numeric"
               maxLength={2}
               value={golsCasa}
               onChangeText={setGolsCasa}
-              editable={!bloqueado}
+              editable={!inputDesabilitado} // Aplica a regra de bloqueio aqui!
               placeholder="-"
               placeholderTextColor="#8fa3b8"
             />
             <Text style={styles.x}>X</Text>
             <TextInput
-              style={[styles.inputPlacar, bloqueado && styles.inputBloqueado]}
+              style={[styles.inputPlacar, inputDesabilitado && styles.inputBloqueado]}
               keyboardType="numeric"
               maxLength={2}
               value={golsFora}
               onChangeText={setGolsFora}
-              editable={!bloqueado}
+              editable={!inputDesabilitado} // Aplica a regra de bloqueio aqui!
               placeholder="-"
               placeholderTextColor="#8fa3b8"
             />
           </View>
 
-          {/* Se estiver bloqueado, avisa. Se não, mostra o botão salvar */}
-          {bloqueado ? (
+          {/* Controle do que aparece embaixo do placar */}
+          {bloqueadoPorHorario ? (
             <Text style={styles.txtBloqueado}>🔒 Encerrado</Text>
+          ) : estaConfirmado ? (
+            <Text style={styles.txtConfirmado}>✅ Confirmado</Text>
           ) : (
             <TouchableOpacity style={styles.btnSalvar} onPress={handleSalvar}>
-              <Text style={styles.btnSalvarTexto}>Salvar</Text>
+              <Text style={styles.btnSalvarTexto}>💾 Rascunho</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
   estrela: {
     fontSize: 18,
     color: "#f2cc2f",
-    paddingLeft: 20, // Dá uma área de clique melhor para a estrela
+    paddingLeft: 20,
   },
   linhaPrincipal: {
     flexDirection: "row",
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
   areaPlacar: {
     alignItems: "center",
     justifyContent: "center",
-    width: 90, // Mantém o centro alinhado
+    width: 90,
   },
   hora: {
     color: "#8fa3b8",
@@ -207,6 +210,12 @@ const styles = StyleSheet.create({
   txtBloqueado: {
     marginTop: 8,
     color: "#ff4d4d",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  txtConfirmado: {
+    marginTop: 8,
+    color: "#28a745",
     fontSize: 10,
     fontWeight: "bold",
   },
